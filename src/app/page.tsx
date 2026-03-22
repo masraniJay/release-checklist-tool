@@ -88,21 +88,21 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="mx-auto max-w-4xl">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        {/* Header - Fixed at top */}
+        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-4 rounded-2xl bg-white/80 p-4 shadow-sm backdrop-blur-sm md:flex-row md:items-center md:justify-between md:p-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
-              Release Checklist
+            <h1 className="text-2xl font-bold text-slate-800 md:text-3xl">
+              🚀 Release Checklist
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Track your release process from start to finish
+            <p className="mt-1 text-sm text-slate-500">
+              Track your releases, one step at a time
             </p>
           </div>
           <button
             onClick={() => setShowNewModal(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-300 active:scale-95"
           >
             + New Release
           </button>
@@ -110,12 +110,17 @@ export default function Home() {
 
         {/* Releases List */}
         {loading ? (
-          <div className="text-center py-12 text-gray-500">
-            Loading releases...
+          <div className="flex min-h-[300px] items-center justify-center rounded-2xl bg-white p-12 shadow-sm">
+            <div className="text-center">
+              <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+              <p className="text-slate-500">Loading releases...</p>
+            </div>
           </div>
         ) : releases.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
-            <p className="text-gray-500">No releases yet. Create your first one!</p>
+          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white p-12">
+            <span className="mb-4 text-5xl">📋</span>
+            <h3 className="mb-2 text-lg font-semibold text-slate-700">No releases yet</h3>
+            <p className="text-slate-500">Create your first release to get started!</p>
           </div>
         ) : (
           <div className="space-y-4">

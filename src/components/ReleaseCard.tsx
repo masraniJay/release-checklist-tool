@@ -11,10 +11,28 @@ interface ReleaseCardProps {
   onDelete: (id: string) => void;
 }
 
-const statusColors = {
-  planned: 'bg-gray-100 text-gray-700',
-  ongoing: 'bg-blue-100 text-blue-700',
-  done: 'bg-green-100 text-green-700',
+const statusConfig = {
+  planned: {
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
+    border: 'border-slate-200',
+    label: 'Planned',
+    icon: '📝'
+  },
+  ongoing: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    label: 'In Progress',
+    icon: '🔄'
+  },
+  done: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    label: 'Completed',
+    icon: '✅'
+  },
 };
 
 export default function ReleaseCard({
@@ -43,58 +61,104 @@ export default function ReleaseCard({
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const completedCount = release.completed_steps?.length || 0;
+  const totalCount = steps.length;
+  const progressPercent = Math.round((completedCount / totalCount) * 100);
+
+  const config = statusConfig[release.status];
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-6">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className={`border-b ${config.border} bg-gradient-to-r ${config.bg} px-4 py-3 md:px-6`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-gray-900">{release.name}</h2>
+            <h2 className="text-lg font-bold text-slate-800">{release.name}</h2>
             <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${statusColors[release.status]}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${config.bg} ${config.text} border ${config.border}`}
             >
-              {release.status}
+              <span>{config.icon}</span>
+              {config.label}
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-500">{formatDate(release.date)}</p>
+          <div className="flex items-center gap-3 sm:self-end">
+            <div className="text-right">
+              <p className="text-sm font-medium text-slate-700">{formatDate(release.date)}</p>
+              <p className="text-xs text-slate-500">{formatTime(release.date)}</p>
+            </div>
+            <button
+              onClick={() => onDelete(release.id)}
+              className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+              title="Delete release"
+            >
+              Delete
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => onDelete(release.id)}
-          className="self-start rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
-        >
-          Delete
-        </button>
+
+        {/* Progress Bar */}
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-600">Progress</span>
+            <span className="text-slate-500">{completedCount} of {totalCount} steps</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                progressPercent === 100 ? 'bg-emerald-500' : progressPercent > 0 ? 'bg-amber-500' : 'bg-slate-400'
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
 
       {/* Steps */}
-      <div className="mb-4">
-        <h3 className="mb-2 text-sm font-medium text-gray-700">Checklist</h3>
+      <div className="p-4 md:p-6">
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">Checklist</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {steps.map((step) => {
             const isCompleted = release.completed_steps?.includes(step as ReleaseStep);
             return (
               <label
                 key={step}
-                className={`flex items-center gap-2 rounded-md border p-2.5 transition-colors cursor-pointer ${
+                className={`flex items-center gap-3 rounded-xl border p-3 transition-all cursor-pointer ${
                   isCompleted
-                    ? 'border-green-200 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-emerald-300 bg-emerald-50 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={isCompleted}
-                  onChange={() => onToggleStep(release.id, step)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
+                <div className="relative flex h-5 w-5 flex-shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={isCompleted}
+                    onChange={() => onToggleStep(release.id, step)}
+                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-slate-300 transition-all checked:border-emerald-500 checked:bg-emerald-500"
+                  />
+                  <svg
+                    className="pointer-events-none absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
                 <span
-                  className={`text-sm ${
-                    isCompleted ? 'text-gray-900' : 'text-gray-600'
+                  className={`text-sm font-medium ${
+                    isCompleted ? 'text-slate-800' : 'text-slate-600'
                   }`}
                 >
                   {step}
@@ -106,46 +170,47 @@ export default function ReleaseCard({
       </div>
 
       {/* Additional Info */}
-      <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+      <div className="border-t border-slate-100 bg-slate-50 p-4 md:px-6">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-700">Additional Info</h3>
+          <h3 className="text-sm font-semibold text-slate-700">📝 Notes</h3>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="text-xs text-blue-600 hover:text-blue-700"
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
             >
               Edit
             </button>
           )}
         </div>
         {isEditing ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <textarea
               value={infoText}
               onChange={(e) => setInfoText(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               rows={3}
               placeholder="Add notes about this release..."
+              autoFocus
             />
             <div className="flex gap-2">
               <button
                 onClick={handleSaveInfo}
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue-700"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
               >
                 Save
               </button>
               <button
                 onClick={handleCancelInfo}
-                className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
               >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-600 whitespace-pre-wrap">
+          <p className="whitespace-pre-wrap text-sm text-slate-600 leading-relaxed">
             {infoText || (
-              <span className="italic text-gray-400">No additional information</span>
+              <span className="italic text-slate-400">No additional information</span>
             )}
           </p>
         )}
