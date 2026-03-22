@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Release, CreateReleaseInput, RELEASE_STEPS } from '@/types/release';
-import ReleaseCard from '@/components/ReleaseCard';
+import { useRouter } from 'next/navigation';
+import { Release, CreateReleaseInput } from '@/types/release';
 import NewReleaseModal from '@/components/NewReleaseModal';
 
 export default function Home() {
+  const router = useRouter();
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -40,105 +41,114 @@ export default function Home() {
     }
   };
 
-  const deleteRelease = async (id: string) => {
-    try {
-      const response = await fetch(`/api/releases/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        await fetchReleases();
-      }
-    } catch (error) {
-      console.error('Failed to delete release:', error);
-    }
-  };
-
-  const toggleStep = async (id: string, step: string) => {
-    try {
-      const response = await fetch(`/api/releases/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toggle_step: step }),
-      });
-      if (response.ok) {
-        await fetchReleases();
-      }
-    } catch (error) {
-      console.error('Failed to toggle step:', error);
-    }
-  };
-
-  const updateAdditionalInfo = async (id: string, additionalInfo: string) => {
-    try {
-      const response = await fetch(`/api/releases/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ additional_info: additionalInfo }),
-      });
-      if (response.ok) {
-        await fetchReleases();
-      }
-    } catch (error) {
-      console.error('Failed to update additional info:', error);
-    }
-  };
-
   useEffect(() => {
     fetchReleases();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
-      <div className="mx-auto max-w-4xl">
-        {/* Header - Fixed at top */}
-        <div className="sticky top-0 z-10 mb-6 flex flex-col gap-4 rounded-2xl bg-white/80 p-4 shadow-sm backdrop-blur-sm md:flex-row md:items-center md:justify-between md:p-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 md:text-3xl">
-              🚀 Release Checklist
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Track your releases, one step at a time
-            </p>
-          </div>
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-300 active:scale-95"
-          >
-            + New Release
-          </button>
-        </div>
+  const getStatusBadge = (status: string) => {
+    const config = {
+      planned: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'planned' },
+      ongoing: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'ongoing' },
+      done: { bg: 'bg-green-50', text: 'text-green-700', label: 'done' },
+    };
+    const c = config[status as keyof typeof config] || config.planned;
+    return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${c.bg} ${c.text}`}>{c.label}</span>;
+  };
 
-        {/* Releases List */}
-        {loading ? (
-          <div className="flex min-h-[300px] items-center justify-center rounded-2xl bg-white p-12 shadow-sm">
-            <div className="text-center">
-              <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-              <p className="text-slate-500">Loading releases...</p>
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const getProgress = (release: Release) => {
+    const completed = release.completed_steps?.length || 0;
+    const total = 8;
+    const percent = Math.round((completed / total) * 100);
+    return (
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 w-14 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full ${percent === 100 ? 'bg-green-500' : percent > 0 ? 'bg-blue-500' : 'bg-gray-400'}`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <span className="text-xs text-gray-500">{completed}/{total}</span>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-white text-gray-500 text-sm">Loading...</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <header className="border-b border-gray-200">
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl px-4 py-3">
+            <div className="flex items-center justify-between">
+              <h1 className="text-sm font-medium text-gray-900">Release Checklist</h1>
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                + New release
+              </button>
             </div>
           </div>
-        ) : releases.length === 0 ? (
-          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white p-12">
-            <span className="mb-4 text-5xl">📋</span>
-            <h3 className="mb-2 text-lg font-semibold text-slate-700">No releases yet</h3>
-            <p className="text-slate-500">Create your first release to get started!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {releases.map((release) => (
-              <ReleaseCard
-                key={release.id}
-                release={release}
-                steps={RELEASE_STEPS}
-                onToggleStep={toggleStep}
-                onUpdateInfo={updateAdditionalInfo}
-                onDelete={deleteRelease}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      </header>
 
-      {/* New Release Modal */}
+      <main className="flex justify-center py-4">
+        <div className="w-full max-w-2xl px-4">
+          {releases.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-sm text-gray-500">No releases yet. Create your first release!</p>
+            </div>
+          ) : (
+            <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-300 bg-gray-50">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Release</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Progress</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {releases.map((release) => (
+                    <tr key={release.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2.5">
+                        <span className="text-sm text-gray-900">{release.name}</span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-sm text-gray-600">{formatDate(release.date)}</span>
+                      </td>
+                      <td className="px-4 py-2.5">{getStatusBadge(release.status)}</td>
+                      <td className="px-4 py-2.5">{getProgress(release)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <button
+                          onClick={() => router.push(`/release/${release.id}`)}
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+
       {showNewModal && (
         <NewReleaseModal
           onClose={() => setShowNewModal(false)}
